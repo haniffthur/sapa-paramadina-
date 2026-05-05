@@ -18,14 +18,28 @@
                     <input type="text" name="name" class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-blue-500 outline-none transition" placeholder="Contoh: Lab Game & Multimedia" required>
                 </div>
 
+                <!-- DYNAMIC PRODI ROWS -->
                 <div>
-                    <label class="block text-sm font-semibold text-gray-700 mb-2">Prodi Pengelola</label>
-                    <select name="prodi_id" class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-blue-500 outline-none transition" required>
-                        <option value="">Pilih Prodi</option>
-                        @foreach($prodis as $prodi)
-                            <option value="{{ $prodi->id }}">{{ $prodi->nama_prodi }}</option>
-                        @endforeach
-                    </select>
+                    <div class="flex justify-between items-end mb-2">
+                        <label class="block text-sm font-semibold text-gray-700">Prodi Pengelola</label>
+                        <button type="button" onclick="addProdiRow()" class="text-xs font-bold text-blue-600 bg-blue-50 hover:bg-blue-100 px-3 py-1.5 rounded-lg transition">
+                            <i class="fa-solid fa-plus"></i> Tambah Prodi
+                        </button>
+                    </div>
+
+                    <div id="prodi-container" class="space-y-3">
+                        <!-- Baris Pertama (Wajib Ada, Gak Bisa Dihapus) -->
+                        <div class="flex gap-2 prodi-row">
+                            <select name="prodi_ids[]" class="flex-1 px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-blue-500 outline-none transition" required>
+                                <option value="">-- Pilih Prodi --</option>
+                                @foreach($prodis as $prodi)
+                                    <option value="{{ $prodi->id }}">{{ $prodi->nama_prodi }}</option>
+                                @endforeach
+                            </select>
+                            <!-- Spacer biar sejajar sama yang bawah -->
+                            <div class="w-[42px]"></div> 
+                        </div>
+                    </div>
                 </div>
 
                 <div>
@@ -40,4 +54,29 @@
         </form>
     </div>
 </div>
+
+<script>
+    function addProdiRow() {
+        const container = document.getElementById('prodi-container');
+        
+        // Bikin element div baru
+        const row = document.createElement('div');
+        row.className = 'flex gap-2 prodi-row mt-3'; // mt-3 buat jarak antar row baru
+        
+        // HTML form select yang dikloning
+        row.innerHTML = `
+            <select name="prodi_ids[]" class="flex-1 px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-blue-500 outline-none transition" required>
+                <option value="">-- Pilih Prodi Tambahan --</option>
+                @foreach($prodis as $prodi)
+                    <option value="{{ $prodi->id }}">{{ $prodi->nama_prodi }}</option>
+                @endforeach
+            </select>
+            <button type="button" onclick="this.parentElement.remove()" class="w-[42px] shrink-0 bg-red-50 text-red-500 hover:bg-red-100 rounded-xl flex items-center justify-center transition border border-red-100">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+        `;
+        
+        container.appendChild(row);
+    }
+</script>
 @endsection

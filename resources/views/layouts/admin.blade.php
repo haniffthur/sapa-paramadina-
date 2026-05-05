@@ -64,8 +64,14 @@
                 <a href="{{ route('admin.report') }}" 
                    class="flex items-center gap-3 p-3 rounded-lg transition {{ request()->routeIs('admin.report') ? 'bg-blue-800 text-white shadow-md' : 'text-blue-100 hover:bg-blue-800' }}">
                     <i class="fa-solid fa-file-invoice w-5"></i> 
-                    <span class="text-sm font-semibold">Laporan</span>
+                    <span class="text-sm font-semibold">Riwayat Peminjaman</span>
                 </a>
+                
+                <a href="{{ route('admin.asset-reports.index') }}" 
+   class="flex items-center gap-3 p-3 rounded-lg transition {{ request()->routeIs('admin.asset-reports.*') ? 'bg-blue-800 text-white shadow-md' : 'text-blue-100 hover:bg-blue-800' }}">
+    <i class="fa-solid fa-screwdriver-wrench w-5 text-center"></i> 
+    <span class="text-sm font-semibold">Laporan Kerusakan</span>
+</a>
 
                 <div class="pt-4 pb-2 text-[10px] font-bold text-blue-400 uppercase px-3 tracking-widest">Sistem</div>
                 

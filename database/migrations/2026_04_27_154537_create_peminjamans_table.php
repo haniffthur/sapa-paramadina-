@@ -13,8 +13,6 @@ return new class extends Migration
     Schema::create('peminjamans', function (Blueprint $table) {
         $table->id();
         $table->foreignId('user_id')->constrained()->onDelete('cascade');
-        $table->foreignId('asset_id')->constrained()->onDelete('cascade');
-        $table->integer('qty_minjam')->default(1);
         $table->dateTime('start_time');
         $table->dateTime('end_time'); // Deadline pengembalian
         $table->dateTime('actual_return_time')->nullable(); // Waktu asli kembali

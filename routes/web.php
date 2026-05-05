@@ -10,10 +10,13 @@ use App\Http\Controllers\Admin\CategoryController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Admin\ProdiController;
 use App\Http\Controllers\Admin\PeminjamanController as AdminPeminjamanController;
+use App\Http\Controllers\Petugas\DashboardController as PetugasDashboardController;
+use App\Http\Controllers\Petugas\PeminjamanController as PetugasPeminjamanController;
+use App\Http\Controllers\Admin\AssetReportController;
+
 
 
 /*
-|--------------------------------------------------------------------------
 | Web Routes - SAPA PARAMADINA (Final Sync Version)
 |--------------------------------------------------------------------------
 */
@@ -54,6 +57,8 @@ Route::middleware(['auth'])->group(function () {
 
     Route::post('/pinjam/store-multi', [UserAssetController::class, 'storeMultiPeminjaman'])->name('peminjaman.storeMulti');
 
+    Route::get('/assets/{id}/detail', [UserAssetController::class, 'assetDetail'])->name('peminjaman.asset.detail');
+
     // Logout
     Route::post('/logout', [GoogleController::class, 'logout'])->name('logout');
 });
@@ -88,4 +93,28 @@ Route::middleware(['auth', 'is_admin'])->prefix('admin')->name('admin.')->group(
     // User Management
     Route::get('/users', [UserController::class, 'index'])->name('users.index');
     Route::post('/users/{id}/update-role', [UserController::class, 'updateRole'])->name('users.update-role');
+
+    // Manajemen Laporan Kerusakan dari Petugas
+// Halaman list semua laporan dari petugas
+    Route::get('/reportasset', [AssetReportController::class, 'index'])->name('asset-reports.index');
+    
+    // Proses update status (Menunggu -> Diproses -> Selesai)
+    Route::patch('/reportasset/{id}/status', [AssetReportController::class, 'updateStatus'])->name('asset-reports.update');
+});
+
+Route::middleware(['auth', 'isPetugas'])->prefix('petugas')->name('petugas.')->group(function () {
+    
+    // Dashboard Utama Petugas
+    Route::get('/dashboard', [PetugasDashboardController::class, 'index'])->name('dashboard');
+    
+    // Fitur Pantau Pinjaman (Hanya View & List)
+    Route::get('/peminjaman', [PetugasPeminjamanController::class, 'index'])->name('peminjaman.index');
+    
+    // Fitur Lapor Kerusakan Aset (Post dari Modal)
+    Route::post('/lapor-kerusakan', [PetugasDashboardController::class, 'storeReport'])->name('report.store');
+
+    Route::get('/riwayat-laporan', [PetugasDashboardController::class, 'historyReport'])->name('reports.index');
+
+    // Nanti bisa tambah route riwayat laporan di sini
+    // Route::get('/riwayat-laporan', [ReportController::class, 'index'])->name('report.index');
 });

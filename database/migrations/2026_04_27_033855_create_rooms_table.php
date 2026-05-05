@@ -14,7 +14,6 @@ return new class extends Migration
         $table->id();
         $table->string('name');
         $table->string('qr_code_token')->unique(); // QR tunggal di pintu
-        $table->foreignId('prodi_id')->constrained('prodis')->onDelete('cascade');
         $table->text('description')->nullable();
         $table->timestamps();
     });

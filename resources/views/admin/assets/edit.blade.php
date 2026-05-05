@@ -186,6 +186,20 @@
 
     <form action="{{ route('admin.assets.update', $asset->id) }}" method="POST" enctype="multipart/form-data">
         @csrf @method('PUT')
+        <!-- ALERT ERROR VALIDASI -->
+        @if ($errors->any())
+            <div style="background:#fef2f2; border:1.5px solid #fca5a5; border-radius:14px; padding:16px 20px; margin-bottom:24px;">
+                <div style="display:flex; align-items:center; gap:8px; margin-bottom:8px;">
+                    <i class="fa-solid fa-circle-exclamation" style="color:#ef4444; font-size:14px;"></i>
+                    <span style="font-size:12px; font-weight:800; color:#b91c1c; text-transform:uppercase; letter-spacing:0.05em;">Gagal Menyimpan Data</span>
+                </div>
+                <ul style="color:#ef4444; font-size:12px; font-weight:600; padding-left:24px; list-style-type:disc; line-height:1.6;">
+                    @foreach ($errors->all() as $error)
+                        <li>{{ $error }}</li>
+                    @endforeach
+                </ul>
+            </div>
+        @endif
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
 
             <!-- KOLOM KIRI -->
@@ -221,6 +235,10 @@
                         <div>
                             <label class="field-label">Nama Aset</label>
                             <input type="text" name="name" value="{{ old('name', $asset->name) }}" class="field-input" required>
+                        </div>
+                        <div>
+                            <label class="field-label">Total Stok (Quantity)</label>
+                            <input type="number" name="quantity" value="{{ old('quantity', $asset->quantity) }}" class="field-input mono" required min="1">
                         </div>
                         <div class="grid grid-cols-2 gap-5">
                             <div>

@@ -33,7 +33,7 @@ class GoogleController extends Controller
         // Mahasiswa: @students.paramadina.ac.id
         // Admin/Dosen: @paramadina.ac.id
         if (!Str::endsWith($email, ['@paramadina.ac.id', '@students.paramadina.ac.id'])) {
-            return redirect()->route('login')->with('error', 'Akses ditolak! Gunakan email institusi @paramadina.ac.id');
+           return view('auth.error_domain');
         }
 
         // 3. Cari User di Database berdasarkan email
@@ -69,8 +69,12 @@ class GoogleController extends Controller
         // -> Laravel otomatis lempar ke halaman Scan tadi (Intended).
         // Jika tidak ada, maka defaultnya ke route 'dashboard'.
         
-        if ($user->role === 'admin' || $user->role === 'superadmin') {
+        if ($user->role === 'admin') {
+            // Kalau Admin, lempar ke dashboard Admin
             return redirect()->intended(route('admin.dashboard'));
+        } elseif ($user->role === 'petugas') {
+            // Kalau Petugas, lempar ke dashboard Petugas
+            return redirect()->intended(route('petugas.dashboard'));
         }
 
         return redirect()->intended(route('dashboard'));

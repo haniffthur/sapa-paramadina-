@@ -2,74 +2,67 @@
 
 namespace Database\Seeders;
 
-use App\Models\Asset;
-use App\Models\Categories; // Model yang lo pake
-use App\Models\Prodi;
 use Illuminate\Database\Seeder;
-use Illuminate\Support\Str;
+use App\Models\Asset;
 
 class AssetSeeder extends Seeder
 {
     public function run(): void
     {
-        // 1. Buat Data Prodi
-        $prodiTI = Prodi::updateOrCreate(['nama_prodi' => 'Teknik Informatika']);
-        $prodiDKV = Prodi::updateOrCreate(['nama_prodi' => 'Desain Komunikasi Visual']);
+        $assets = [
+            // Aset Lab Komputer (Category: Komputer, Room: Lab Komp)
+            [
+                'name' => 'Apple iMac 24-inch M1',
+                'room_id' => 1,
+                'category_id' => 1,
+                'quantity' => 15,
+                'status' => 'available',
+                'tahun_beli' => 2022,
+                'kondisi' => 'baik',
+                'harga_beli' => 24500000.00,
+                'description' => 'PC All-in-one untuk kebutuhan lab komputasi dasar.',
+            ],
+            
+            // Aset Studio DKV (Category: Studio, Room: Studio DKV)
+            [
+                'name' => 'Kamera Sony A7 III',
+                'room_id' => 2,
+                'category_id' => 2,
+                'quantity' => 3,
+                'status' => 'available',
+                'tahun_beli' => 2021,
+                'kondisi' => 'baik',
+                'harga_beli' => 28000000.00,
+                'description' => 'Kamera mirrorless full-frame dengan lensa kit.',
+            ],
 
-        // 2. Buat Kategori (Sertakan slug manual biar gak error SQL)
-        $catRuangan = Categories::updateOrCreate(
-            ['name' => 'Ruangan & Lab'],
-            ['slug' => Str::slug('Ruangan & Lab')]
-        );
+            // Aset Lab IoT (Category: Hardware & IoT, Room: Lab Sistem Cerdas)
+            [
+                'name' => 'ESP32 Development Board',
+                'room_id' => 3,
+                'category_id' => 3,
+                'quantity' => 30,
+                'status' => 'available',
+                'tahun_beli' => 2023,
+                'kondisi' => 'baru',
+                'harga_beli' => 85000.00,
+                'description' => 'Modul WiFi & Bluetooth untuk project IoT.',
+            ],
+            [
+                'name' => 'Arduino Mega 2560',
+                'room_id' => 3,
+                'category_id' => 3,
+                'quantity' => 10,
+                'status' => 'available',
+                'tahun_beli' => 2020,
+                'kondisi' => 'rusak_ringan',
+                'harga_beli' => 250000.00,
+                'description' => 'Mikrokontroler dengan pin I/O yang banyak.',
+            ],
+        ];
 
-        $catElektronik = Categories::updateOrCreate(
-            ['name' => 'Elektronik & Gadget'],
-            ['slug' => Str::slug('Elektronik & Gadget')]
-        );
-
-        // 3. Tambah Data Aset
-        // Lab Studio Game (TI)
-        Asset::create([
-            'prodi_id' => $prodiTI->id,
-            'category_id' => $catRuangan->id,
-            'name' => 'Lab Studio Game',
-            'description' => 'Laboratorium komputer spesifikasi tinggi untuk pengembangan game.',
-            'status' => 'available',
-            'qr_code_token' => 'LAB-GAME-' . strtoupper(Str::random(6)),
-            'quantity' => 1,
-        ]);
-
-        // Lab DKV (DKV)
-        Asset::create([
-            'prodi_id' => $prodiDKV->id,
-            'category_id' => $catRuangan->id,
-            'name' => 'Lab DKV',
-            'description' => 'Ruangan desain dengan pen tablet dan iMac.',
-            'status' => 'available',
-            'qr_code_token' => 'LAB-DKV-' . strtoupper(Str::random(6)),
-            'quantity' => 1,
-        ]);
-
-        // Oculus Quest (TI)
-        Asset::create([
-            'prodi_id' => $prodiTI->id,
-            'category_id' => $catElektronik->id,
-            'name' => 'Oculus Quest 2',
-            'description' => 'Virtual Reality Headset untuk testing game VR.',
-            'status' => 'available',
-            'qr_code_token' => 'VR-OQ2-' . strtoupper(Str::random(6)),
-            'quantity' => 5,
-        ]);
-
-        // Tambahan: Kamera (DKV)
-        Asset::create([
-            'prodi_id' => $prodiDKV->id,
-            'category_id' => $catElektronik->id,
-            'name' => 'Sony A7 IV',
-            'description' => 'Kamera Mirrorless untuk kebutuhan produksi video prodi DKV.',
-            'status' => 'available',
-            'qr_code_token' => 'CAM-SONY-' . strtoupper(Str::random(6)),
-            'quantity' => 2,
-        ]);
+        foreach ($assets as $asset) {
+            Asset::create($asset);
+        }
     }
 }

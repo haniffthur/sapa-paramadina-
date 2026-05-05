@@ -11,7 +11,8 @@ class Room extends Model {
         return $this->hasMany(Asset::class);
     }
 
-    public function prodi() {
-        return $this->belongsTo(Prodi::class);
-    }
+ public function prodis()
+{
+    return $this->belongsToMany(Prodi::class, 'prodi_room');
+}
 }

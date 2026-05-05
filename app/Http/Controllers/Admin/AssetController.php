@@ -64,7 +64,8 @@ class AssetController extends Controller
     {
         $asset = Asset::findOrFail($id);
         $rooms = Room::all();
-        $categories = Categories::all();
+        $categories = Categories::all(); // <-- UBAH Categories jadi Category
+        
         return view('admin.assets.edit', compact('asset', 'rooms', 'categories'));
     }
 
@@ -72,24 +73,21 @@ class AssetController extends Controller
     {
         $asset = Asset::findOrFail($id);
         
-        // Tambahkan validasi untuk update
+        // Validasi
         $request->validate([
             'name' => 'required|string|max:255',
             'image' => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
             'room_id' => 'required|exists:rooms,id',
             'category_id' => 'required|exists:categories,id',
-            'quantity' => 'required|integer|min:1',
+            'quantity' => 'required|integer|min:1', // <-- Ini wajib ada di Form
             'tahun_beli' => 'nullable|integer',
             'kondisi' => 'nullable|string',
             'harga_beli' => 'nullable|numeric',
         ]);
 
         $data = $request->all();
-
-        // Berikan nilai default 0 jika harga_beli diubah jadi kosong
         $data['harga_beli'] = $request->harga_beli ?? 0;
 
-        // Penanganan update image
         if ($request->hasFile('image')) {
             if ($asset->image) {
                 Storage::disk('public')->delete($asset->image);

@@ -12,4 +12,9 @@ public function assets()
     // Cari aset LEWAT ruangan (Has Many Through)
     return $this->hasManyThrough(Asset::class, Room::class);
 }
+
+public function rooms()
+{
+    return $this->belongsToMany(Room::class, 'prodi_room');
+}
 }

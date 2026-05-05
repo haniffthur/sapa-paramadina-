@@ -9,22 +9,26 @@ use Illuminate\Http\Request;
 use App\Events\PeminjamanApproved;
 use App\Events\PeminjamanRejected;
 use App\Models\Penalty;
+use App\Models\Room;
+use App\Models\Prodi;
 
 class AdminController extends Controller
 {
    public function index()
     {
-        $data['pending_count'] = Peminjaman::where('status', 'pending')->count();
-        $data['active_loan'] = Peminjaman::whereIn('status', ['active', 'late'])->count();
+        // 1. Data Statistik (Buat Widget Cards)
+        $data['total_rooms'] = Room::count();
         $data['total_assets'] = Asset::count();
+        $data['total_prodis'] = Prodi::count();
         
-        // Statistik Denda
-        $data['unpaid_penalties'] = Penalty::where('status', 'unpaid')->count();
-        $data['total_fine_amount'] = Penalty::where('status', 'unpaid')->sum('amount');
+        // Hitung pengajuan yang butuh persetujuan (Pending)
+        $data['pending_loans_count'] = Peminjaman::where('status', 'pending')->count();
 
-        $data['recent_requests'] = Peminjaman::with(['user', 'asset'])
-                                    ->where('status', 'pending')
-                                    ->latest()->take(5)->get();
+        // 2. Data Tabel (Ambil 5 Pengajuan Terbaru buat di-review cepat)
+        $data['recent_loans'] = Peminjaman::with(['user', 'details.asset'])
+                                    ->latest()
+                                    ->take(5)
+                                    ->get();
 
         return view('admin.dashboard', $data);
     }
@@ -47,15 +51,15 @@ class AdminController extends Controller
 
    public function report(Request $request)
 {
-    // Eager loading user dan asset biar gak lambat
-    $query = Peminjaman::with(['user', 'asset']);
+    // UPDATE: Ganti 'asset' menjadi 'details.asset'
+    $query = Peminjaman::with(['user', 'details.asset']);
 
-    // Fitur Filter Berdasarkan Status (Pending, Approved, Rejected, Completed)
+    // Fitur Filter Berdasarkan Status
     if ($request->has('status') && $request->status != '') {
         $query->where('status', $request->status);
     }
 
-    // Fitur Filter Tanggal (Jika admin mau liat rekap bulan ini saja)
+    // Fitur Filter Tanggal
     if ($request->filled('start_date') && $request->filled('end_date')) {
         $query->whereBetween('created_at', [$request->start_date, $request->end_date]);
     }

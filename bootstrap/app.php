@@ -13,6 +13,7 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware) {
     $middleware->alias([
         'is_admin' => \App\Http\Middleware\AdminMiddleware::class,
+        'isPetugas' => \App\Http\Middleware\IsPetugas::class,
     ]);
     $middleware->trustProxies(at: '*');
 })

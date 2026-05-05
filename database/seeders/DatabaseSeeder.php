@@ -18,7 +18,9 @@ class DatabaseSeeder extends Seeder
         // User::factory(10)->create();
 
       $this->call([
-        UserSeeder::class,
+        ProdiSeeder::class,
+        CategorySeeder::class,
+        RoomSeeder::class,
         AssetSeeder::class,
         // Nanti kalau ada CategorySeeder atau AssetSeeder, tambahin di bawah sini
     ]);

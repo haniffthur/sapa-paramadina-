@@ -24,14 +24,14 @@
     <!-- Asset Grid -->
     <div class="grid grid-cols-2 gap-4" id="assetContainer">
         @foreach($assets as $asset)
-        <div class="asset-card bg-white rounded-[1.5rem] overflow-hidden border border-slate-100 shadow-sm flex flex-col group transition-all duration-300" 
+       <a href="{{ route('peminjaman.asset.detail', $asset->id) }}" class="asset-card bg-white rounded-[1.5rem] overflow-hidden border border-slate-100 shadow-sm flex flex-col group transition-all duration-300 hover:shadow-md cursor-pointer active:scale-95" 
              data-category="{{ $asset->category_id }}" 
              data-name="{{ strtolower($asset->name) }}">
             
             <!-- Thumbnail -->
             <div class="aspect-square relative overflow-hidden bg-slate-50">
                 @if($asset->quantity > 0)
-                    <div class="absolute top-3 left-3 bg-green-500 text-white text-[8px] font-black px-3 py-1 rounded-full z-10 uppercase tracking-widest shadow-md">Tersedia</div>
+                    <div class="absolute top-3 left-3 bg-blue-900 text-white text-[8px] font-black px-3 py-1 rounded-full z-10 uppercase tracking-widest shadow-md">Tersedia</div>
                 @else
                     <div class="absolute top-3 left-3 bg-red-500 text-white text-[8px] font-black px-3 py-1 rounded-full z-10 uppercase tracking-widest shadow-md">Habis</div>
                 @endif
@@ -57,7 +57,7 @@
                     <p class="text-xs font-black {{ $asset->quantity > 0 ? 'text-brand' : 'text-red-500' }} leading-none">{{ $asset->quantity }} <span class="text-[9px]">Unit</span></p>
                 </div>
             </div>
-        </div>
+        </a>
         @endforeach
     </div>
 

@@ -39,13 +39,13 @@
             </div>
         </div>
         
-        <a href="#" class="p-4 border-b border-gray-50 flex items-center gap-4 hover:bg-gray-50">
+        <a href="{{ route('peminjaman.history') }}" class="p-4 border-b border-gray-50 flex items-center gap-4 hover:bg-gray-50">
             <i class="fa-solid fa-clock-rotate-left text-blue-500 w-5"></i>
             <span class="text-sm font-semibold text-gray-700">Riwayat Peminjaman</span>
             <i class="fa-solid fa-chevron-right ml-auto text-gray-300 text-xs"></i>
         </a>
 
-        <a href="https://wa.me/628123456789" target="_blank" class="p-4 border-b border-gray-50 flex items-center gap-4 hover:bg-gray-50">
+        <a href="https://wa.me/6285780498549" target="_blank" class="p-4 border-b border-gray-50 flex items-center gap-4 hover:bg-gray-50">
             <i class="fa-solid fa-headset text-blue-500 w-5"></i>
             <span class="text-sm font-semibold text-gray-700">Bantuan Laboran</span>
             <i class="fa-solid fa-chevron-right ml-auto text-gray-300 text-xs"></i>
