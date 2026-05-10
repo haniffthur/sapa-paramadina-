@@ -17,4 +17,8 @@ public function rooms()
 {
     return $this->belongsToMany(Room::class, 'prodi_room');
 }
+public function users()
+{
+    return $this->hasMany(User::class, 'prodi_id');
+}
 }

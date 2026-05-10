@@ -7,14 +7,12 @@ use App\Models\Peminjaman;
 use App\Models\AssetReport;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Storage;
-
 
 class DashboardController extends Controller
 {
     public function index()
     {
-        // 1. Data Widget Statistik Khusus Operasional
+        // Statistik untuk widget dashboard petugas
         $data['pending_count'] = Peminjaman::where('status', 'pending')->count();
         $data['active_count'] = Peminjaman::whereIn('status', ['approved', 'active'])->count();
         $data['late_count'] = Peminjaman::where('status', 'late')->count();
@@ -23,7 +21,7 @@ class DashboardController extends Controller
                                     ->whereDate('updated_at', today())
                                     ->count();
 
-        // 2. Data Tabel Antrean (Ambil yang aktif, telat, dan pending buat dipantau)
+        // Data antrean peminjaman untuk dipantau OB
         $data['loans'] = Peminjaman::with(['user', 'details.asset.room'])
                                     ->whereIn('status', ['pending', 'approved', 'active', 'late'])
                                     ->latest()
@@ -32,40 +30,59 @@ class DashboardController extends Controller
         return view('petugas.dashboard', $data);
     }
 
-    // Fungsi untuk memproses laporan kerusakan dari Modal
     public function storeReport(Request $request)
     {
+        // Validasi input
         $request->validate([
+            'peminjaman_id' => 'required|exists:peminjamans,id',
             'asset_id' => 'required|exists:assets,id',
             'deskripsi_kerusakan' => 'required|string',
-            // Validasi foto (maks 2MB)
-            'foto_kerusakan' => 'nullable|image|mimes:jpeg,png,jpg|max:2048', 
+            'foto_kerusakan' => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
+            'nominal_denda' => 'nullable|numeric|min:0'
         ]);
 
-        $path = null;
+        // Upload Foto
+        $fotoPath = null;
         if ($request->hasFile('foto_kerusakan')) {
-            $path = $request->file('foto_kerusakan')->store('asset_reports', 'public');
+            $fotoPath = $request->file('foto_kerusakan')->store('laporan_kerusakan', 'public');
         }
 
+        // Simpan Laporan Kerusakan
         AssetReport::create([
+            'peminjaman_id' => $request->peminjaman_id, // KRUSIAL: Biar Admin tau siapa pelakunya
             'asset_id' => $request->asset_id,
             'petugas_id' => Auth::id(),
             'deskripsi_kerusakan' => $request->deskripsi_kerusakan,
-            'foto_kerusakan' => $path,
-            'status' => 'menunggu', // Status default nunggu Admin
+            'foto_kerusakan' => $fotoPath,
+            'nominal_denda' => $request->nominal_denda,
+            'status' => 'menunggu', // Status awal agar muncul di Admin
         ]);
 
-        return redirect()->back()->with('success', 'Laporan kerusakan aset berhasil dikirim ke Admin!');
+        return redirect()->back()->with('success', 'Laporan kerusakan & usulan denda berhasil dikirim ke Admin!');
     }
 
-    public function historyReport()
-{
-    // Mengambil riwayat laporan yang dibuat oleh petugas yang sedang login
-    $reports = AssetReport::with('asset.room')
-                ->where('petugas_id', auth()->id())
-                ->latest()
-                ->paginate(10);
+    public function historyReport(Request $request)
+    {
+        $query = \App\Models\AssetReport::with(['asset.room', 'peminjaman.user'])->latest();
 
-    return view('petugas.reports.index', compact('reports'));
-}   
+        // Filter Pencarian (Nama Aset / Ruangan)
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->whereHas('asset', function($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                  ->orWhereHas('room', function($r) use ($search) {
+                      $r->where('name', 'like', "%{$search}%");
+                  });
+            });
+        }
+
+        // Filter Tanggal Pelaporan
+        if ($request->filled('date')) {
+            $query->whereDate('created_at', $request->date);
+        }
+
+        $reports = $query->paginate(15)->withQueryString();
+
+        return view('petugas.reports.index', compact('reports'));
+    }
 }

@@ -9,7 +9,7 @@ use Illuminate\Foundation\Events\Dispatchable;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Broadcasting\InteractsWithSockets;
 
-class PeminjamanApproved implements ShouldBroadcastNow
+class PeminjamanRejected implements ShouldBroadcastNow
 {
     use Dispatchable, InteractsWithSockets, SerializesModels;
 
@@ -20,12 +20,12 @@ class PeminjamanApproved implements ShouldBroadcastNow
     {
         $this->peminjaman = $peminjaman;
 
-        $this->message = "Selamat! Pengajuan peminjaman Anda telah disetujui.";
+        $this->message = "Maaf, pengajuan peminjaman Anda ditolak.";
     }
 
     public function broadcastOn()
     {
-       return [
+      return [
         new Channel('peminjaman-channel'), // Buat Petugas (Public/Umum)
         new Channel('mahasiswa-channel.' . $this->peminjaman->user_id) // Buat si Mahasiswa (Private)
     ];
@@ -33,6 +33,6 @@ class PeminjamanApproved implements ShouldBroadcastNow
 
     public function broadcastAs()
     {
-        return 'loan-approved';
+        return 'loan-rejected';
     }
 }

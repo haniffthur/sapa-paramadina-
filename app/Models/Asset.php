@@ -45,4 +45,9 @@ class Asset extends Model
     {
         return $this->hasMany(Peminjaman::class);
     }
+    public function reports()
+{
+    // Satu aset bisa dilaporkan rusak berkali-kali dalam sejarahnya
+    return $this->hasMany(AssetReport::class, 'asset_id');
+}
 }

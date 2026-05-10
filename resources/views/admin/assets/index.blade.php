@@ -60,4 +60,9 @@
         </tbody>
     </table>
 </div>
+<div class="px-4 mt-6">
+    <div class="bg-white border border-slate-100 rounded-2xl px-4 py-3 shadow-sm">
+        {{ $assets->links() }}
+    </div>
+</div>
 @endsection

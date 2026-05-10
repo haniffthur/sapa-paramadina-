@@ -17,6 +17,7 @@ return new class extends Migration
         $table->dateTime('end_time'); // Deadline pengembalian
         $table->dateTime('actual_return_time')->nullable(); // Waktu asli kembali
         $table->enum('status', ['pending', 'approved', 'rejected', 'active', 'completed', 'late'])->default('pending');
+        
         $table->text('reason')->nullable();
         $table->text('admin_note')->nullable();
         $table->timestamps();

@@ -25,63 +25,55 @@ class GoogleController extends Controller
     public function handleGoogleCallback()
 {
     try {
-        // 1. Ambil data user dari Google
-        $userGoogle = Socialite::driver('google')->user();
-        $email = $userGoogle->getEmail();
+        $googleUser = Socialite::driver('google')->user();
+        $email = $googleUser->getEmail();
 
-        // 2. Validasi Domain (Khusus Paramadina)
-        // Mahasiswa: @students.paramadina.ac.id
-        // Admin/Dosen: @paramadina.ac.id
-        if (!Str::endsWith($email, ['@paramadina.ac.id', '@students.paramadina.ac.id'])) {
-           return view('auth.error_domain');
-        }
-
-        // 3. Cari User di Database berdasarkan email
+        // 1. Cek apakah user sudah terdaftar di database kita
         $user = User::where('email', $email)->first();
 
-        if ($user) {
-            // Jika user sudah ada, update data terbaru (avatar/nama)
-            $user->update([
-                'google_id' => $userGoogle->getId(),
-                'avatar'    => $userGoogle->getAvatar(),
-            ]);
-        } else {
-            // Jika user baru pertama kali login
-            // Tentukan role otomatis berdasarkan email
-            $role = Str::contains($email, 'students') ? 'mahasiswa' : 'admin';
+        if (!$user) {
+            // 2. Jika belum terdaftar, tentukan role secara ketat
+            $domain = substr(strrchr($email, "@"), 1);
+            
+            // Default role adalah mahasiswa jika pakai domain student
+            $role = 'mahasiswa';
 
-            $user = User::create([
-                'name'      => $userGoogle->getName(),
-                'email'     => $email,
-                'google_id' => $userGoogle->getId(),
-                'avatar'    => $userGoogle->getAvatar(),
-                'role'      => $role,
-                'password'  => Hash::make(Str::random(24)), // Password random buat keamanan
-            ]);
+            // Jika pakai domain @paramadina.ac.id (Himpunan/Dosen), 
+            // JANGAN langsung kasih Admin. Kasih role 'mahasiswa' atau 'guest' dulu.
+            // Biar nanti Admin utama yang ubah role mereka secara manual di menu User Management.
+            if ($domain === 'paramadina.ac.id' || $domain === 'students.paramadina.ac.id') {
+                $user = User::create([
+                    'name' => $googleUser->getName(),
+                    'email' => $email,
+                    'google_id' => $googleUser->getId(),
+                    'avatar' => $googleUser->getAvatar(),
+                    'role' => 'mahasiswa', // <--- KUNCINYA DI SINI: Semua pendaftar baru adalah mahasiswa
+                    'password' => bcrypt(str()->random(16)),
+                ]);
+            } else {
+                return redirect()->route('login')->with('error', 'Gunakan email @paramadina.ac.id!');
+            }
         }
 
-        // 4. Login-kan User ke sistem Laravel
+        // 3. Login-kan user
         Auth::login($user);
 
-        // 5. REDIRECT MAGIC
-        // intended() akan mengecek apakah ada URL yang mau dibuka user sebelum login
-        // Misalnya: Mahasiswa scan QR -> Laravel lempar ke Login -> Login Sukses
-        // -> Laravel otomatis lempar ke halaman Scan tadi (Intended).
-        // Jika tidak ada, maka defaultnya ke route 'dashboard'.
-        
+        // 4. Redirect berdasarkan role yang ADA DI DATABASE, bukan berdasarkan email
         if ($user->role === 'admin') {
-            // Kalau Admin, lempar ke dashboard Admin
             return redirect()->intended(route('admin.dashboard'));
         } elseif ($user->role === 'petugas') {
-            // Kalau Petugas, lempar ke dashboard Petugas
             return redirect()->intended(route('petugas.dashboard'));
+        } else {
+            // Mahasiswa, Dosen, atau Himpunan masuk ke sini dulu
+            // Cek kelengkapan NIM/Prodi seperti yang kita buat sebelumnya
+            if (empty($user->nim) || empty($user->prodi_id)) {
+                return redirect()->route('profile.complete');
+            }
+            return redirect()->intended(route('dashboard'));
         }
 
-        return redirect()->intended(route('dashboard'));
-
     } catch (\Exception $e) {
-        // Log error jika diperlukan: \Log::error($e->getMessage());
-        return redirect()->route('login')->with('error', 'Terjadi kesalahan saat login Google.');
+        return redirect()->route('login')->with('error', 'Login gagal!');
     }
 }
 

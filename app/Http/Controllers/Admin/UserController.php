@@ -10,7 +10,8 @@ class UserController extends Controller
 {
     public function index()
     {
-        $users = User::latest()->paginate(15);
+        // Tambahin with('prodi') biar query ke database lebih efisien
+        $users = User::with('prodi')->latest()->paginate(15);
         return view('admin.users.index', compact('users'));
     }
 

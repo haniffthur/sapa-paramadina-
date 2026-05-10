@@ -9,7 +9,7 @@ use Illuminate\Foundation\Events\Dispatchable;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Broadcasting\InteractsWithSockets;
 
-class PeminjamanApproved implements ShouldBroadcastNow
+class PeminjamanCompleted implements ShouldBroadcastNow
 {
     use Dispatchable, InteractsWithSockets, SerializesModels;
 
@@ -20,7 +20,7 @@ class PeminjamanApproved implements ShouldBroadcastNow
     {
         $this->peminjaman = $peminjaman;
 
-        $this->message = "Selamat! Pengajuan peminjaman Anda telah disetujui.";
+        $this->message = "Barang telah dikembalikan. Terima kasih!";
     }
 
     public function broadcastOn()
@@ -33,6 +33,6 @@ class PeminjamanApproved implements ShouldBroadcastNow
 
     public function broadcastAs()
     {
-        return 'loan-approved';
+        return 'loan-completed';
     }
 }

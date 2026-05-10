@@ -10,20 +10,28 @@ class AssetReport extends Model
     use HasFactory;
 
     protected $fillable = [
+        'peminjaman_id', 
         'asset_id', 
         'petugas_id', 
         'deskripsi_kerusakan', 
         'foto_kerusakan', 
-        'status'
+        'status',
+        'nominal_denda',
     ];
 
-    // Relasi ke Aset
-    public function asset()
+    // Relasi balik ke Transaksi Peminjaman (Untuk tau siapa peminjamnya)
+    public function peminjaman()
     {
-        return $this->belongsTo(Asset::class);
+        return $this->belongsTo(Peminjaman::class, 'peminjaman_id');
     }
 
-    // Relasi ke Petugas (User)
+    // Relasi ke Asset (Untuk tau barang apa yang rusak)
+    public function asset()
+    {
+        return $this->belongsTo(Asset::class, 'asset_id');
+    }
+
+    // Relasi ke User/Petugas (Untuk tau OB mana yang melapor)
     public function petugas()
     {
         return $this->belongsTo(User::class, 'petugas_id');

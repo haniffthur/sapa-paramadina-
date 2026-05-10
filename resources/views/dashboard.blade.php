@@ -163,43 +163,169 @@
             </div>
 
             <!-- MODAL DETAIL -->
-            <div id="modal-{{ $loan->id }}" class="fixed inset-0 z-[60] hidden flex items-end justify-center p-0 sm:p-4 sm:items-center">
-                <div class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm transition-opacity opacity-0" id="backdrop-{{ $loan->id }}" onclick="closeModal('modal-{{ $loan->id }}')"></div>
-                <div class="bg-white w-full sm:max-w-md rounded-t-[2rem] sm:rounded-[2rem] p-6 relative z-10 transform translate-y-full transition-transform duration-300 shadow-2xl" id="content-{{ $loan->id }}">
-                    <div class="w-12 h-1.5 bg-slate-200 rounded-full mx-auto mb-6 sm:hidden"></div>
-                    <div class="flex justify-between items-center mb-6">
-                        <div>
-                            <h3 class="font-extrabold text-slate-800 text-xl tracking-tight">Detail Pinjaman</h3>
-                            <p class="text-xs font-medium text-slate-500 mt-1">ID Transaksi: #{{ $loan->id }}</p>
-                        </div>
-                        <button onclick="closeModal('modal-{{ $loan->id }}')" class="w-8 h-8 bg-slate-100 text-slate-500 rounded-full flex items-center justify-center hover:bg-slate-200 active:scale-90 transition-all shrink-0">
-                            <i class="fa-solid fa-xmark"></i>
-                        </button>
-                    </div>
-                    
-                    <div class="space-y-3 mb-6 max-h-[35vh] overflow-y-auto pr-1">
-                        @foreach($loan->details as $detail)
-                        <div class="flex items-center gap-3 bg-slate-50 p-3.5 rounded-2xl border border-slate-100">
-                            <div class="flex-1">
-                                <p class="text-[10px] font-bold text-brand uppercase tracking-widest">{{ $detail->asset->category->name ?? 'Aset' }}</p>
-                                <h4 class="text-sm font-bold text-slate-800 mt-0.5">{{ $detail->asset->name }}</h4>
-                            </div>
-                            <div class="bg-white px-3 py-1.5 rounded-lg border border-slate-200 shadow-sm">
-                                <span class="text-xs font-extrabold text-slate-800">{{ $detail->quantity }}x</span>
-                            </div>
-                        </div>
-                        @endforeach
+           <!-- MODAL DETAIL -->
+<div id="modal-{{ $loan->id }}"
+     class="fixed inset-0 z-[200] hidden">
+
+    <!-- BACKDROP -->
+    <div id="backdrop-{{ $loan->id }}"
+         onclick="closeModal('modal-{{ $loan->id }}')"
+         class="absolute inset-0 bg-slate-900/50 backdrop-blur-sm opacity-0 transition-opacity duration-300">
+    </div>
+
+    <!-- WRAPPER -->
+    <div class="absolute inset-0 flex items-end sm:items-center justify-center">
+
+        <!-- CONTENT -->
+        <div id="content-{{ $loan->id }}"
+             class="bg-white w-full sm:max-w-md rounded-t-[2rem] sm:rounded-[2rem]
+                    p-6 relative z-10
+                    transform translate-y-full sm:scale-95
+                    transition-all duration-300
+                    shadow-2xl
+                    max-h-[90vh]
+                    overflow-y-auto">
+
+            <!-- HANDLE MOBILE -->
+            <div class="w-12 h-1.5 bg-slate-200 rounded-full mx-auto mb-6 sm:hidden"></div>
+
+            <!-- HEADER -->
+            <div class="flex justify-between items-center mb-6">
+
+                <div>
+                    <h3 class="font-extrabold text-slate-800 text-xl tracking-tight">
+                        Detail Pinjaman
+                    </h3>
+
+                    <p class="text-xs font-medium text-slate-500 mt-1">
+                        ID Transaksi: #{{ $loan->id }}
+                    </p>
+                </div>
+
+                <button onclick="closeModal('modal-{{ $loan->id }}')"
+                        class="w-8 h-8 bg-slate-100 text-slate-500 rounded-full flex items-center justify-center hover:bg-slate-200 active:scale-90 transition-all shrink-0">
+
+                    <i class="fa-solid fa-xmark"></i>
+
+                </button>
+
+            </div>
+
+            <!-- LIST ASSET -->
+            <div class="space-y-3 mb-6">
+
+                @foreach($loan->details as $detail)
+
+                <div class="flex items-center gap-3 bg-slate-50 p-3.5 rounded-2xl border border-slate-100">
+
+                    <div class="flex-1">
+
+                        <p class="text-[10px] font-bold text-brand uppercase tracking-widest">
+                            {{ $detail->asset->category->name ?? 'Aset' }}
+                        </p>
+
+                        <h4 class="text-sm font-bold text-slate-800 mt-0.5">
+                            {{ $detail->asset->name }}
+                        </h4>
+
                     </div>
 
-                    <form action="{{ route('peminjaman.selesai', $loan->id) }}" method="POST" onsubmit="return confirm('Apakah kamu yakin ingin menyelesaikan pinjaman ini ?')">
-                        @csrf
-                        <button type="submit" class="w-full bg-brand text-white font-extrabold text-sm py-4 rounded-2xl flex items-center justify-center gap-2 hover:bg-blue-900 active:scale-95 transition-all shadow-lg shadow-blue-900/20">
-                            <i class="fa-regular fa-circle-check text-lg"></i>
-                            Selesai Pinjam
-                        </button>
-                    </form>
+                    <div class="bg-white px-3 py-1.5 rounded-lg border border-slate-200 shadow-sm">
+
+                        <span class="text-xs font-extrabold text-slate-800">
+                            {{ $detail->quantity }}x
+                        </span>
+
+                    </div>
+
                 </div>
+
+                @endforeach
+
             </div>
+
+            <!-- INFO WAKTU -->
+            <div class="bg-slate-50 border border-slate-100 rounded-2xl p-4 mb-6">
+
+                <div class="flex items-center justify-between mb-3">
+
+                    <span class="text-[10px] font-bold uppercase tracking-widest text-slate-400">
+                        Jadwal
+                    </span>
+
+                    @if($loan->status == 'pending')
+
+                    <span class="text-[9px] font-black text-orange-500 bg-orange-50 px-2 py-1 rounded-lg uppercase">
+                        Menunggu
+                    </span>
+
+                    @elseif(\Carbon\Carbon::parse($loan->start_time)->isFuture())
+
+                    <span class="text-[9px] font-black text-blue-500 bg-blue-50 px-2 py-1 rounded-lg uppercase">
+                        Booking
+                    </span>
+
+                    @else
+
+                    <span class="text-[9px] font-black text-green-500 bg-green-50 px-2 py-1 rounded-lg uppercase">
+                        Aktif
+                    </span>
+
+                    @endif
+
+                </div>
+
+                <div class="space-y-2">
+
+                    <div class="flex items-center gap-2 text-sm text-slate-600">
+
+                        <i class="fa-regular fa-calendar text-brand"></i>
+
+                        <span class="font-semibold">
+                            {{ \Carbon\Carbon::parse($loan->start_time)->format('d M Y') }}
+                        </span>
+
+                    </div>
+
+                    <div class="flex items-center gap-2 text-sm text-slate-600">
+
+                        <i class="fa-regular fa-clock text-brand"></i>
+
+                        <span class="font-semibold">
+                            {{ \Carbon\Carbon::parse($loan->start_time)->format('H:i') }}
+                            -
+                            {{ \Carbon\Carbon::parse($loan->end_time)->format('H:i') }}
+                        </span>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+            <!-- BUTTON -->
+            <form action="{{ route('peminjaman.selesai', $loan->id) }}"
+                  method="POST"
+                  onsubmit="return confirm('Apakah kamu yakin ingin menyelesaikan pinjaman ini ?')">
+
+                @csrf
+
+                <button type="submit"
+                        class="w-full bg-brand text-white font-extrabold text-sm py-4 rounded-2xl flex items-center justify-center gap-2 hover:bg-blue-900 active:scale-95 transition-all shadow-lg shadow-blue-900/20">
+
+                    <i class="fa-regular fa-circle-check text-lg"></i>
+
+                    Selesai Pinjam
+
+                </button>
+
+            </form>
+
+        </div>
+
+    </div>
+
+</div>
 
             @empty
             <div class="bg-white py-12 rounded-[2.5rem] border border-dashed border-slate-200 text-center flex flex-col items-center">
@@ -350,28 +476,48 @@
     }
 
     // Modal Peminjaman Aktif (Bawaan)
-    function openModal(id) {
+ function openModal(id) {
+
         const modal = document.getElementById(id);
         const backdrop = document.getElementById(id.replace('modal-', 'backdrop-'));
         const content = document.getElementById(id.replace('modal-', 'content-'));
-        
+
         modal.classList.remove('hidden');
-        void modal.offsetWidth; 
-        backdrop.classList.remove('opacity-0');
-        content.classList.remove('translate-y-full');
+
+        document.body.style.overflow = 'hidden';
+
+        requestAnimationFrame(() => {
+
+            backdrop.classList.remove('opacity-0');
+
+            content.classList.remove('translate-y-full');
+
+            content.classList.remove('sm:scale-95');
+
+        });
+
     }
 
     function closeModal(id) {
+
         const modal = document.getElementById(id);
         const backdrop = document.getElementById(id.replace('modal-', 'backdrop-'));
         const content = document.getElementById(id.replace('modal-', 'content-'));
-        
+
         backdrop.classList.add('opacity-0');
+
         content.classList.add('translate-y-full');
-        
+
+        content.classList.add('sm:scale-95');
+
         setTimeout(() => {
+
             modal.classList.add('hidden');
+
+            document.body.style.overflow = '';
+
         }, 300);
+
     }
 </script>
 @endsection

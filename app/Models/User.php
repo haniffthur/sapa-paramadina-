@@ -21,6 +21,8 @@ class User extends Authenticatable
         'avatar',
         'password',
         'role',
+        'nim',
+        'prodi_id',
     ];
 
     /**
@@ -46,4 +48,20 @@ class User extends Authenticatable
     {
         return in_array($this->role, ['admin', 'superadmin']);
     }
+    public function prodi()
+{
+    return $this->belongsTo(Prodi::class, 'prodi_id');
+}
+
+public function reportsMade()
+{
+    // Sebagai Petugas/OB yang melaporkan
+    return $this->hasMany(AssetReport::class, 'petugas_id');
+}
+
+public function penalties()
+{
+    // Sebagai Mahasiswa yang kena denda (Relasi ke tabel Penalty)
+    return $this->hasMany(Penalty::class, 'user_id');
+}
 }

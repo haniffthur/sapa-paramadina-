@@ -4,7 +4,7 @@
 <div class="flex justify-between items-center mb-6">
     <div>
         <h2 class="text-2xl font-bold text-gray-800">Manajemen Pengguna</h2>
-        <p class="text-gray-500 text-sm">Monitor dan atur hak akses Civitas Paramadina</p>
+        <p class="text-gray-500 text-sm">Monitor dan atur hak akses serta data Civitas Paramadina</p>
     </div>
     
     <form action="{{ route('admin.users.index') }}" method="GET" class="flex gap-2">
@@ -17,7 +17,6 @@
     </form>
 </div>
 
-<!-- Menampilkan Alert Sukses -->
 @if(session('success'))
     <div class="mb-4 bg-green-50 text-green-600 p-4 rounded-xl border border-green-100 text-sm font-bold flex items-center gap-2 shadow-sm">
         <i class="fa-solid fa-circle-check"></i> {{ session('success') }}
@@ -28,7 +27,8 @@
     <table class="w-full text-left border-collapse">
         <thead>
             <tr class="bg-gray-50 border-b border-gray-100">
-                <th class="p-4 text-xs uppercase text-gray-500 font-bold">User</th>
+                <th class="p-4 text-xs uppercase text-gray-500 font-bold">User Info</th>
+                <th class="p-4 text-xs uppercase text-gray-500 font-bold">Data Akademik</th>
                 <th class="p-4 text-xs uppercase text-gray-500 font-bold text-center">Role Saat Ini</th>
                 <th class="p-4 text-xs uppercase text-gray-500 font-bold text-right">Ubah Akses</th>
             </tr>
@@ -45,8 +45,19 @@
                         </div>
                     </div>
                 </td>
+                
+                <td class="p-4">
+                    @if($user->role == 'mahasiswa')
+                        <p class="text-sm font-bold text-gray-800">{{ $user->nim ?? 'NIM Kosong' }}</p>
+                       <p class="text-[10px] text-blue-600 font-bold uppercase tracking-widest mt-0.5">
+    {{ $user->prodi->nama_prodi ?? 'Prodi Belum Diisi' }}
+</p>
+                    @else
+                        <span class="text-xs text-gray-400 italic">Bukan Mahasiswa</span>
+                    @endif
+                </td>
+
                 <td class="p-4 text-center">
-                    <!-- UPDATE DI SINI: Ganti superadmin jadi petugas buat deteksi warna badge -->
                     <span class="px-3 py-1 rounded-full text-[10px] font-bold uppercase 
                         {{ $user->role == 'petugas' ? 'bg-purple-100 text-purple-700' : 
                           ($user->role == 'admin' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-600') }}">
@@ -59,7 +70,6 @@
                         <select name="role" class="text-xs border rounded-lg px-2 py-1 outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer">
                             <option value="mahasiswa" {{ $user->role == 'mahasiswa' ? 'selected' : '' }}>Mahasiswa</option>
                             <option value="admin" {{ $user->role == 'admin' ? 'selected' : '' }}>Admin</option>
-                            <!-- UPDATE DI SINI: Value-nya udah diganti jadi petugas murni -->
                             <option value="petugas" {{ $user->role == 'petugas' ? 'selected' : '' }}>Petugas</option>
                         </select>
                         <button type="submit" class="bg-gray-800 text-white p-1.5 rounded-lg hover:bg-black transition" title="Simpan Perubahan">

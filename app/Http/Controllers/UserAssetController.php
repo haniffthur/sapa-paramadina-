@@ -2,12 +2,12 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Categories;
+use App\Models\Categories; // Tetap menggunakan Categories sesuai request
 use App\Models\Room;
 use App\Models\Asset;
 use App\Models\Peminjaman;
 use App\Models\Penalty;
-use App\Models\Category;
+use App\Models\Prodi; // Tambahkan ini untuk list prodi di halaman profil
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Carbon\Carbon;
@@ -15,7 +15,10 @@ use App\Models\PeminjamanDetail;
 
 class UserAssetController extends Controller
 {
-    // Dashboard Mahasiswa
+    /**
+     * Dashboard Mahasiswa
+     * Menampilkan pinjaman aktif, denda, dan jadwal kalender
+     */
     public function index()
     {
         $user = Auth::user();
@@ -27,17 +30,16 @@ class UserAssetController extends Controller
                                 ->latest()
                                 ->get();
 
-        // 2. Data Tunggakan
+        // 2. Data Tunggakan Denda
         $data['unpaid_penalty'] = Penalty::where('user_id', $user->id)
                                  ->where('status', 'unpaid')
                                  ->sum('amount');
 
-        // 3. BARU: Data Semua Jadwal Booking (Untuk Kalender)
+        // 3. Data Jadwal Booking untuk Kalender (FullCalendar)
         $bookings = Peminjaman::whereIn('status', ['pending', 'approved', 'active'])
                               ->with(['details.asset.room', 'user'])
                               ->get();
         
-        // Format data biar cocok sama FullCalendar.js
         $events = [];
         foreach ($bookings as $booking) {
             $roomName = $booking->details->first()?->asset?->room?->name ?? 'Ruangan Lab';
@@ -45,7 +47,7 @@ class UserAssetController extends Controller
                 'title' => $roomName . ' (' . $booking->user->name . ')',
                 'start' => Carbon::parse($booking->start_time)->toIso8601String(),
                 'end'   => Carbon::parse($booking->end_time)->toIso8601String(),
-                'color' => $booking->status == 'pending' ? '#f59e0b' : '#3b82f6', // Orange untuk pending, Biru untuk approved
+                'color' => $booking->status == 'pending' ? '#f59e0b' : '#3b82f6',
             ];
         }
         $data['calendar_events'] = json_encode($events);
@@ -53,75 +55,64 @@ class UserAssetController extends Controller
         return view('dashboard', $data);
     }
 
-    // Katalog Asset
+    /**
+     * Katalog Asset
+     */
     public function showAssets()
     {
         $assets = Asset::with(['category', 'room'])->where('quantity', '>', 0)->get();
-        $categories = Categories::all();
+        $categories = Categories::all(); 
         return view('user.assets_list', compact('assets', 'categories'));
     }
 
-    // Halaman Kamera Scan
+    /**
+     * Halaman Kamera Scan QR
+     */
     public function scanArea()
     {
         return view('user.scan');
     }
 
-    // Hasil Scan QR Pintu & Form Booking
+    /**
+     * Hasil Scan QR Pintu Ruangan
+     */
     public function scanRoom($token)
     {
         $room = Room::where('qr_code_token', $token)->with('assets.category')->firstOrFail();
         return view('user.room_assets', compact('room'));
     }
 
-    // Proses Simpan Peminjaman & Booking Anti-Bentrok
-    public function storeMultiPeminjaman(Request $request)
+    /**
+     * Konfirmasi Pinjam (Single Asset dari Scan)
+     */
+    public function confirmPinjam($asset_id)
+    {
+        $asset = Asset::with(['category', 'room'])->findOrFail($asset_id);
+        return view('user.confirm_pinjam', compact('asset'));
+    }
+
+    /**
+     * Simpan Peminjaman (Single Asset)
+     */
+    public function storePeminjaman(Request $request)
     {
         $request->validate([
-            'room_id' => 'required|exists:rooms,id',
-            'items' => 'required|array', 
+            'asset_id' => 'required|exists:assets,id',
+            'qty_pinjam' => 'required|integer|min:1',
+            'duration' => 'required|numeric|min:0.5',
             'reason' => 'required|string|min:5',
-            'duration' => 'required|numeric|min:1|max:24',
-            'booking_start' => 'nullable|date', // Tambahan Validasi Booking Waktu
         ]);
 
-        // AMAN 1: Paksa ubah input durasi dari HTML (String) jadi Angka Bulat (Integer)
-        $duration = $request->integer('duration');
-
-        // AMAN 2: Cek apakah input tanggal benar-benar diisi oleh mahasiswa
-        if ($request->filled('booking_start')) {
-            // Kalau "Booking Nanti" dipilih dan tanggal diisi
-            $startTime = Carbon::parse($request->booking_start);
-        } else {
-            // Kalau "Pinjam Sekarang" dipilih
-            $startTime = Carbon::now();
+        $asset = Asset::findOrFail($request->asset_id);
+        
+        // Cek stok
+        if ($asset->quantity < $request->qty_pinjam) {
+            return back()->with('error', 'Stok tidak mencukupi!');
         }
 
-        // Penambahan jam sekarang dijamin 100% aman karena $duration sudah jadi integer
-        $endTime = $startTime->copy()->addHours($duration);
+        $startTime = Carbon::now();
+        $endTime = $startTime->copy()->addHours($request->duration);
 
-        // --- 1. CEK ANTI-BENTROK DULU ---
-        foreach ($request->items as $asset_id => $qty) {
-            if ($qty > 0) {
-                // Logika: Cari apakah aset ini sedang dipakai/dibooking di rentang waktu yang diminta
-                $isBentrok = PeminjamanDetail::where('asset_id', $asset_id)
-                    ->whereHas('peminjaman', function ($q) use ($startTime, $endTime) {
-                        $q->whereIn('status', ['pending', 'approved', 'active'])
-                          // Rumus sakti cek Overlap Waktu: StartA < EndB AND EndA > StartB
-                          ->where('start_time', '<', $endTime)
-                          ->where('end_time', '>', $startTime);
-                    })->exists();
-
-                if ($isBentrok) {
-                    $assetName = Asset::find($asset_id)->name;
-                    return back()->with('error', "Gagal! '$assetName' sudah di-booking orang lain pada rentang waktu tersebut.");
-                }
-            }
-        }
-
-        $hasItems = false;
-
-        // --- 2. BUAT DATA MASTER ---
         $peminjaman = Peminjaman::create([
             'user_id' => Auth::id(),
             'start_time' => $startTime,
@@ -130,22 +121,74 @@ class UserAssetController extends Controller
             'reason' => $request->reason,
         ]);
 
-        // --- 3. MASUKKAN KE KERANJANG DETAIL ---
+        PeminjamanDetail::create([
+            'peminjaman_id' => $peminjaman->id,
+            'asset_id' => $request->asset_id,
+            'quantity' => $request->qty_pinjam
+        ]);
+
+        // Potong stok langsung karena pinjam sekarang
+        $asset->decrement('quantity', $request->qty_pinjam);
+
+        // Notif ke Admin
+        try {
+            event(new \App\Events\PeminjamanBaru("Peminjaman baru dari " . Auth::user()->name));
+        } catch (\Exception $e) {}
+
+        return redirect()->route('dashboard')->with('success', 'Peminjaman berhasil diajukan!');
+    }
+
+    /**
+     * Proses Simpan Peminjaman Multi-Item (Dari Keranjang/Scan Room)
+     */
+    public function storeMultiPeminjaman(Request $request)
+    {
+        $request->validate([
+            'room_id' => 'required|exists:rooms,id',
+            'items' => 'required|array', 
+            'reason' => 'required|string|min:5',
+            'duration' => 'required|numeric|min:1|max:24',
+            'booking_start' => 'nullable|date',
+        ]);
+
+        $duration = $request->integer('duration');
+        $startTime = $request->filled('booking_start') ? Carbon::parse($request->booking_start) : Carbon::now();
+        $endTime = $startTime->copy()->addHours($duration);
+
+        // --- 1. CEK ANTI-BENTROK ---
+        foreach ($request->items as $asset_id => $qty) {
+            if ($qty > 0) {
+                $isBentrok = PeminjamanDetail::where('asset_id', $asset_id)
+                    ->whereHas('peminjaman', function ($q) use ($startTime, $endTime) {
+                        $q->whereIn('status', ['pending', 'approved', 'active'])
+                          ->where('start_time', '<', $endTime)
+                          ->where('end_time', '>', $startTime);
+                    })->exists();
+
+                if ($isBentrok) {
+                    $assetName = Asset::find($asset_id)->name;
+                    return back()->with('error', "Gagal! '$assetName' sudah dibooking orang lain.");
+                }
+            }
+        }
+
+        $hasItems = false;
+        $peminjaman = Peminjaman::create([
+            'user_id' => Auth::id(),
+            'start_time' => $startTime,
+            'end_time' => $endTime,
+            'status' => 'pending',
+            'reason' => $request->reason,
+        ]);
+
         foreach ($request->items as $asset_id => $qty) {
             if ($qty > 0) {
                 $asset = Asset::findOrFail($asset_id);
-                
                 if ($asset->quantity >= $qty) {
                     $hasItems = true;
-                    
-                    // Kalau start time-nya hari ini/sekarang, langsung potong stok fisik
                     if ($startTime->isToday()) {
                         $asset->decrement('quantity', $qty);
-                        if ($asset->quantity <= 0) {
-                            $asset->update(['status' => 'unavailable']);
-                        }
                     }
-
                     PeminjamanDetail::create([
                         'peminjaman_id' => $peminjaman->id,
                         'asset_id' => $asset_id,
@@ -157,13 +200,20 @@ class UserAssetController extends Controller
 
         if (!$hasItems) {
             $peminjaman->delete();
-            return back()->with('error', 'Gagal meminjam. Stok tidak mencukupi atau tidak ada barang yang dipilih!');
+            return back()->with('error', 'Gagal! Stok tidak mencukupi.');
         }
 
-        return redirect()->route('dashboard')->with('success', 'Berhasil diajukan! (Menunggu approve dari admin)');
+        // --- PUSHER: Notif Ke Admin ---
+        try {
+            event(new \App\Events\PeminjamanBaru("Peminjaman baru dari " . Auth::user()->name));
+        } catch (\Exception $e) {}
+
+        return redirect()->route('dashboard')->with('success', 'Berhasil diajukan!');
     }
 
-    // Proses Pengembalian (Selesai)
+    /**
+     * Proses Pengembalian (Selesai)
+     */
     public function selesai($id)
     {
         $loan = Peminjaman::with('details.asset')->findOrFail($id);
@@ -177,34 +227,91 @@ class UserAssetController extends Controller
             'status' => 'completed', 
             'actual_return_time' => Carbon::now() 
         ]);
+
+        try {
+            event(new \App\Events\PeminjamanCompleted($loan)); 
+        } catch (\Exception $e) {}
         
-        return back()->with('success', 'Semua aset berhasil dikembalikan!');
+        return back()->with('success', 'Aset berhasil dikembalikan!');
     }
 
-    // Riwayat, Denda, Profil dll...
+    /**
+     * Riwayat Peminjaman User
+     */
     public function history()
     {
         $history = Peminjaman::where('user_id', Auth::id())
-                    // TAMBAHKAN category DI SINI BIAR DATANYA KETARIK
                     ->with(['details.asset.room', 'details.asset.category']) 
                     ->latest()
                     ->get();
-                    
         return view('user.history', compact('history'));
     }
 
+    /**
+     * Daftar Denda User
+     */
     public function penalties() {
         $penalties = Penalty::where('user_id', Auth::id())->latest()->get();
         return view('user.penalties', compact('penalties'));
     }
 
+    /**
+     * Halaman Profil & Update Data (NIM/Prodi)
+     */
     public function profile() {
         $user = Auth::user();
-        return view('user.profile', compact('user'));
+        $prodis = Prodi::all(); // Untuk dropdown di view
+        return view('user.profile', compact('user', 'prodis'));
     }
 
+    /**
+     * Update Data NIM dan Prodi (Dibutuhkan oleh Middleware EnsureProfileIsComplete)
+     */
+    public function updateProfile(Request $request)
+    {
+        $request->validate([
+            'nim' => 'required|numeric|unique:users,nim,' . Auth::id(),
+            'prodi_id' => 'required|exists:prodis,id',
+        ]);
+
+        Auth::user()->update([
+            'nim' => $request->nim,
+            'prodi_id' => $request->prodi_id,
+        ]);
+
+        return redirect()->route('dashboard')->with('success', 'Data profil berhasil diperbarui!');
+    }
+
+    /**
+     * Detail Aset
+     */
     public function assetDetail($id) {
         $asset = Asset::with(['category', 'room'])->findOrFail($id);
         return view('user.asset_detail', compact('asset'));
+    }
+
+    public function payPenalty(Request $request, $id)
+    {
+        $request->validate([
+            'payment_proof' => 'required|image|mimes:jpeg,png,jpg|max:2048', // Validasi file gambar max 2MB
+        ]);
+
+        // Pastikan denda ini memang milik mahasiswa yang sedang login
+        $penalty = Penalty::where('user_id', Auth::id())->findOrFail($id);
+
+        // Proses simpan file bukti pembayaran
+        if ($request->hasFile('payment_proof')) {
+            // File akan disimpan di folder storage/app/public/payment_proofs
+            $path = $request->file('payment_proof')->store('payment_proofs', 'public');
+            
+            // Update status denda jadi 'pending' supaya admin bisa verifikasi
+            $penalty->update([
+                'payment_proof' => $path, // Pastikan kolom 'payment_proof' sudah ada di tabel penalties
+                'status' => 'pending', 
+                'description' => $penalty->description . ' (Menunggu Verifikasi Admin)'
+            ]);
+        }
+
+        return back()->with('success', 'Mantap! Bukti pembayaran berhasil diupload. Tunggu Admin verifikasi ya!');
     }
 }

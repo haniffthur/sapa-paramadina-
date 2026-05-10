@@ -28,6 +28,11 @@ public function user()
     public function penalty() {
         return $this->hasOne(Penalty::class);
     }
+    public function reports()
+{
+    // Satu transaksi peminjaman bisa punya banyak laporan kerusakan aset
+    return $this->hasMany(AssetReport::class, 'peminjaman_id');
+}
 
     
 }

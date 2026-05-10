@@ -50,9 +50,14 @@
                 <div class="pt-4 pb-2 text-[10px] font-bold text-blue-400 uppercase px-3 tracking-widest">Peminjaman</div>
 
                 <a href="{{ route('admin.peminjaman.index') }}" 
-                   class="flex items-center gap-3 p-3 rounded-lg transition {{ request()->routeIs('admin.peminjaman.*') ? 'bg-blue-800 text-white shadow-md' : 'text-blue-100 hover:bg-blue-800' }}">
-                    <i class="fa-solid fa-clipboard-check w-5"></i> 
-                    <span class="text-sm font-semibold">Approval</span>
+                   class="flex items-center justify-between p-3 rounded-lg transition {{ request()->routeIs('admin.peminjaman.*') ? 'bg-blue-800 text-white shadow-md' : 'text-blue-100 hover:bg-blue-800' }}">
+                    <div class="flex items-center gap-3">
+                        <i class="fa-solid fa-clipboard-check w-5"></i> 
+                        <span class="text-sm font-semibold">Approval</span>
+                    </div>
+                    <span id="loan-count-badge" class="{{ (isset($pendingCount) && $pendingCount > 0) ? '' : 'hidden' }} bg-red-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow-sm">
+                        {{ $pendingCount ?? 0 }}
+                    </span>
                 </a>
 
                 <a href="{{ route('admin.penalties.index') }}" 
@@ -68,10 +73,10 @@
                 </a>
                 
                 <a href="{{ route('admin.asset-reports.index') }}" 
-   class="flex items-center gap-3 p-3 rounded-lg transition {{ request()->routeIs('admin.asset-reports.*') ? 'bg-blue-800 text-white shadow-md' : 'text-blue-100 hover:bg-blue-800' }}">
-    <i class="fa-solid fa-screwdriver-wrench w-5 text-center"></i> 
-    <span class="text-sm font-semibold">Laporan Kerusakan</span>
-</a>
+                   class="flex items-center gap-3 p-3 rounded-lg transition {{ request()->routeIs('admin.asset-reports.*') ? 'bg-blue-800 text-white shadow-md' : 'text-blue-100 hover:bg-blue-800' }}">
+                    <i class="fa-solid fa-screwdriver-wrench w-5 text-center"></i> 
+                    <span class="text-sm font-semibold">Laporan Kerusakan</span>
+                </a>
 
                 <div class="pt-4 pb-2 text-[10px] font-bold text-blue-400 uppercase px-3 tracking-widest">Sistem</div>
                 
@@ -86,6 +91,13 @@
                     <i class="fa-solid fa-graduation-cap w-5"></i> 
                     <span class="text-sm font-semibold">Program Studi</span>
                 </a>
+
+                <a href="{{ route('admin.settings.index') }}" 
+   class="flex items-center gap-3 p-3 rounded-lg transition {{ request()->routeIs('admin.settings.*') ? 'bg-blue-800 text-white' : 'text-blue-100 hover:bg-blue-800' }}">
+    <i class="fa-solid fa-gear w-5"></i>
+    <span class="text-sm font-semibold">Settings</span>
+</a>
+                
             </nav>
 
             <div class="p-4 border-t border-blue-800">
@@ -108,22 +120,15 @@
                         <p class="text-sm font-bold text-gray-800 leading-none">{{ Auth::user()->name }}</p>
                         <p class="text-[10px] text-gray-400 uppercase tracking-widest">{{ Auth::user()->role }}</p>
                     </div>
-                    <img src="{{ Auth::user()->avatar }}" class="w-10 h-10 rounded-xl border-2 border-white shadow-sm">
+                    <img src="{{ Auth::user()->avatar }}" class="w-10 h-10 rounded-xl border-2 border-white shadow-sm object-cover">
                 </div>
             </header>
 
             <div class="p-8">
                 @if(session('success'))
-                    <div class="bg-green-100 border-l-4 border-green-500 text-green-700 p-4 mb-6 shadow-sm rounded-r-lg" role="alert">
+                    <div class="bg-green-100 border-l-4 border-green-500 text-green-700 p-4 mb-6 shadow-sm rounded-r-lg">
                         <p class="font-bold">Berhasil!</p>
                         <p class="text-sm">{{ session('success') }}</p>
-                    </div>
-                @endif
-
-                @if(session('error'))
-                    <div class="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-6 shadow-sm rounded-r-lg" role="alert">
-                        <p class="font-bold">Waduh!</p>
-                        <p class="text-sm">{{ session('error') }}</p>
                     </div>
                 @endif
 
@@ -131,6 +136,80 @@
             </div>
         </main>
     </div>
+ <script src="https://js.pusher.com/8.2.0/pusher.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+
+    console.log("ADMIN REALTIME LOADED");
+
+    Pusher.logToConsole = false;
+
+    const pusher = new Pusher('{{ env("PUSHER_APP_KEY") }}', {
+        cluster: '{{ env("PUSHER_APP_CLUSTER") }}',
+        forceTLS: true,
+        enabledTransports: ['ws', 'wss']
+    });
+
+    // CONNECTED
+    pusher.connection.bind('connected', function () {
+        console.log('ADMIN PUSHER CONNECTED');
+    });
+
+    // SUBSCRIBE CHANNEL ADMIN
+    const channel = pusher.subscribe('admin-notification');
+
+    channel.bind('pusher:subscription_succeeded', function () {
+        console.log('ADMIN CHANNEL SUBSCRIBED');
+    });
+
+    // EVENT PEMINJAMAN BARU
+    channel.bind('loan-submitted', function(data) {
+
+        console.log('PEMINJAMAN BARU:', data);
+
+        // UPDATE BADGE
+        const badge = document.getElementById('loan-count-badge');
+
+        if (badge) {
+            badge.classList.remove('hidden');
+
+            let currentCount = parseInt(badge.innerText) || 0;
+
+            badge.innerText = currentCount + 1;
+
+            badge.classList.add('animate-bounce');
+
+            setTimeout(() => {
+                badge.classList.remove('animate-bounce');
+            }, 1000);
+        }
+
+        // TOAST NOTIFIKASI
+        Swal.fire({
+            toast: true,
+            position: 'top-end',
+            icon: 'info',
+            title: 'Peminjaman Baru!',
+            text: data.message,
+            showConfirmButton: false,
+            timer: 4000,
+            timerProgressBar: true
+        });
+
+        // AUTO REFRESH HALAMAN APPROVAL
+        if (window.location.pathname.includes('peminjaman')) {
+
+            setTimeout(() => {
+                window.location.reload();
+            }, 2000);
+
+        }
+
+    });
+
+});
+</script>
 </body>
 </html>
