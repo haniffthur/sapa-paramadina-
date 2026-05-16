@@ -2,12 +2,13 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Categories; // Tetap menggunakan Categories sesuai request
+use App\Models\Categories; 
 use App\Models\Room;
 use App\Models\Asset;
 use App\Models\Peminjaman;
 use App\Models\Penalty;
-use App\Models\Prodi; // Tambahkan ini untuk list prodi di halaman profil
+use App\Models\Prodi; 
+use App\Models\Setting; // <-- INI WAJIB DITAMBAH BIAR BISA CEK HARGA DENDA
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Carbon\Carbon;
@@ -212,27 +213,56 @@ class UserAssetController extends Controller
     }
 
     /**
-     * Proses Pengembalian (Selesai)
+     * Proses Pengembalian (Selesai) + LOGIKA DENDA OTOMATIS
      */
     public function selesai($id)
     {
         $loan = Peminjaman::with('details.asset')->findOrFail($id);
-        
+        $now = Carbon::now();
+        $endTime = Carbon::parse($loan->end_time);
+
+        // --- 1. LOGIKA CEK KETERLAMBATAN & DENDA OTOMATIS ---
+        if ($now->greaterThan($endTime)) {
+            // Hitung selisih jam (telat menit pun hitung 1 jam)
+            $hoursLate = $now->diffInHours($endTime);
+            if ($hoursLate == 0) $hoursLate = 1; 
+
+            // Ambil tarif denda per jam dari tabel Setting (Default 5000)
+            $penaltyRate = Setting::where('key', 'penalty_per_hour')->value('value') ?? 5000;
+            $totalPenalty = $hoursLate * $penaltyRate;
+
+            // Masukkan ke tabel Penalty
+            Penalty::create([
+                'user_id' => $loan->user_id,
+                'peminjaman_id' => $loan->id,
+                'amount' => $totalPenalty,
+                'description' => "Terlambat mengembalikan selama {$hoursLate} jam.",
+                'status' => 'unpaid'
+            ]);
+            
+            $msg = "Aset dikembalikan, tapi kamu TELAT! Denda otomatis Rp " . number_format($totalPenalty, 0, ',', '.') . " masuk ke tagihan kamu.";
+        } else {
+            $msg = "Aset berhasil dikembalikan tepat waktu. Mantap!";
+        }
+
+        // --- 2. KEMBALIKAN STOK ASET ---
         foreach($loan->details as $detail) {
             $detail->asset->increment('quantity', $detail->quantity);
             $detail->asset->update(['status' => 'available']);
         }
 
+        // --- 3. UPDATE STATUS PEMINJAMAN ---
         $loan->update([
             'status' => 'completed', 
-            'actual_return_time' => Carbon::now() 
+            'actual_return_time' => $now 
         ]);
 
+        // --- 4. NOTIF PUSHER (OPSIONAL) ---
         try {
             event(new \App\Events\PeminjamanCompleted($loan)); 
         } catch (\Exception $e) {}
         
-        return back()->with('success', 'Aset berhasil dikembalikan!');
+        return back()->with('success', $msg);
     }
 
     /**
@@ -290,6 +320,9 @@ class UserAssetController extends Controller
         return view('user.asset_detail', compact('asset'));
     }
 
+    /**
+     * Proses Upload Bukti Bayar Denda
+     */
     public function payPenalty(Request $request, $id)
     {
         $request->validate([

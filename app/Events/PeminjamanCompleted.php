@@ -27,7 +27,8 @@ class PeminjamanCompleted implements ShouldBroadcastNow
     {
        return [
         new Channel('peminjaman-channel'), // Buat Petugas (Public/Umum)
-        new Channel('mahasiswa-channel.' . $this->peminjaman->user_id) // Buat si Mahasiswa (Private)
+        new Channel('mahasiswa-channel.' . $this->peminjaman->user_id), // Buat si Mahasiswa (Private)
+        new Channel('admin-notification') // Buat Admin (Public/Umum)
     ];
     }
 

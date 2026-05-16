@@ -21,6 +21,7 @@ class AssetReportController extends Controller
         return view('admin.reportasset.index', compact('reports'));
     }
 
+    
     public function approveAndPenalty(Request $request, $id)
     {
         $report = AssetReport::with('peminjaman.user')->findOrFail($id);
